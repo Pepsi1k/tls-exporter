@@ -3,34 +3,46 @@ package main
 import (
 	"log"
 	"net/http"
-	"time"
 
+	// "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	// "crypto/tls"
 )
 
-func recordMetrics() {
-	go func() {
-		for {
-			opsProcessed.Inc()
-			time.Sleep(2 * time.Second)
-		}
-	}()
-}
-
 var (
-	opsProcessed = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "cert",
-		Help: "describe info about certificate",
-	})
+  domainsList = prometheus.NewGaugeVec(
+    prometheus.GaugeOpts{
+      Name: "domain",
+      Help: "just domain",
+    }, []string{"domain"},
+  )
 )
 
 func main() {
+  prometheus.MustRegister(domainsList)
 
-	http.Handle("/metrics", promhttp.Handler())
+  domains := [...]string{
+    "cppstudioy.com",
+    "elegro.eu",
+    "dashboard-stage.niko.technology",
+    "expired-ecc-dv.ssl.com",
+  }
 
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal(err)
-	}
+  // for i := 0; i < len(domains); i++ {
+  //   fmt.Println(domains[i])
+  // }
+
+
+  for i := 0; i < len(domains); i++ {
+    domainsList.With(prometheus.Labels{"domain": domains[i]}).Set(0)
+  }
+
+
+  http.Handle("/metrics", promhttp.Handler())
+  
+  if err := http.ListenAndServe(":80", nil); err != nil {
+    log.Fatal(err)
+  }
+  
 }
